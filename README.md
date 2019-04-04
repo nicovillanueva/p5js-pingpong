@@ -1,46 +1,22 @@
 # p5js-pingpong
+Matches:
+    a. between two users [private]
+        one starter
+        all users require login
+    b. open to any number of users [open]
+        one starter
+        only starting registered user required
+    c. solo [solo]
+        only one id allowed
 
-## [React] Frontend
+Issues
+    - GET /matches/:id?all
+    - Response: [sketch,userid]
 
-**!?**
-
-## [Golang] API
-Content-Type: application/json; unless noted
-```
-/users
-    PUT /
-        - username
-        - password
-        --
-        200:
-        - userid
-    POST /login
-        - username
-        - password
-        --
-        200:
-        - jwt bearing token
-    
-/matches
-    GET /
-        - matchid
-        --
-        200 (text/html):
-        - [match render]
-    PUT /serve/public
-        --
-        200:
-        - matchid
-    PUT /serve/private
-        - userid/jwt token
-        - opponent id
-        --
-        200:
-        - matchid
-    PATCH /return
-        - jwt auth token
-        - matchid
-        - code
-        --
-        200:
-```
+Ideas
+    challenges
+    objetivos/lineas generales predefinidas
+    solo round
+        basado en previos publicos
+    export gif
+    thumbnails

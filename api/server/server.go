@@ -9,17 +9,19 @@ import (
 
 // Verbose defines the logging level. True goes into Debug, Info otherwise.
 // Set previous to starting the server
-const Verbose = false
+const Verbose = true
 
-var activeArbiter *Arbiter
+var store *DataStore
+var logger echo.Logger
 
 func init() {
-	activeArbiter = NewArbiter()
+	store = NewDataStore()
 }
 
 // Start serves the server
 func Start() {
 	e := echo.New()
+	logger = e.Logger
 
 	e.Use(middleware.Recover())
 	e.Logger.SetLevel(func() log.Lvl {
@@ -28,6 +30,9 @@ func Start() {
 		}
 		return log.INFO
 	}())
+	if l, ok := e.Logger.(*log.Logger); ok {
+		l.SetHeader("${time_rfc3339} ${level}")
+	}
 
 	setupRoutes(e)
 

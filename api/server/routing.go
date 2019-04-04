@@ -1,12 +1,36 @@
 package server
 
 import (
+	"fmt"
 	"github.com/labstack/echo/v4"
 )
 
-var apiGroups map[string]*echo.Group
+// APIVersion is a specific API version with all it's handlers
+// Call `.apply()` to enable the routes in the server
+type APIVersion struct {
+	Number    int
+	Enabled   bool
+	Handlings []routeDefinition
+}
+
+type routeDefinition struct {
+	Method  string
+	Path    string
+	Handler func(echo.Context) error
+}
+
+func (a *APIVersion) apply(e *echo.Echo) {
+	if !a.Enabled {
+		return
+	}
+	g := e.Group(fmt.Sprintf("/v%d", a.Number))
+	for _, r := range a.Handlings {
+		g.Add(r.Method, r.Path, r.Handler)
+	}
+}
 
 func setupRoutes(e *echo.Echo) {
+	// Root
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(200, struct {
 			Status string `json:"status"`
@@ -15,52 +39,16 @@ func setupRoutes(e *echo.Echo) {
 		})
 	})
 
-	apiGroups = make(map[string]*echo.Group)
-	apiGroups["users"] = e.Group("/users")
-	apiGroups["matches"] = e.Group("/matches")
-
-	setupUsers()
-	setupMatches()
-}
-
-func setupUsers() {
-	apiGroups["users"].Add("PUT", "/", func(c echo.Context) error {
-		var u user
-		if err := c.Bind(&u); err != nil {
-			c.Echo().Logger.Warnf("could not bind data: %v", err)
-		}
-		uid, err := u.save()
-		if err != nil {
-			return c.JSON(500, errCannotSave{})
-		}
-		return c.JSON(200, struct {
-			UserID int `json:"user_id"`
-		}{uid})
-	})
-}
-
-func setupMatches() {
-	apiGroups["matches"].Add("GET", "/", func(c echo.Context) error {
-		// TODO: template out match
-		return nil
-	})
-
-	apiGroups["matches"].Add("PUT", "/serve/public", func(c echo.Context) error {
-		// TODO: new public match
-		mid := activeArbiter.NewPublicMatch()
-		return c.JSON(200, struct {
-			MatchID int `json:"match_id"`
-		}{mid})
-	})
-
-	// apiGroups["matches"].Add("PUT", "/serve/private", func(c echo.Context) error {
-	// 	// TODO: new private match
-	// 	activeArbiter.NewPrivateMatch(c.Get("userid"), c.Get(""))
-	// 	return nil
-	// })
-
-	apiGroups["matches"].Add("PATCH", "/return", func(c echo.Context) error {
-		// TODO: new entry for a match
-		return nil
-	})
+	a := APIVersion{
+		Number:  1,
+		Enabled: true,
+		Handlings: []routeDefinition{
+			{"PUT", "/users", handleNewUser},
+			{"GET", "/matches/:matchId", handleRenderMatch},
+			{"PUT", "/matches/serve", handleNewMatch},
+			{"PUT", "/matches/join/:matchId", handleJoinMatch},
+			{"PATCH", "/matches/return/:matchId", handleReturn},
+		},
+	}
+	a.apply(e)
 }
