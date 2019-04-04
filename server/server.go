@@ -7,6 +7,13 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
+// MatchRequest starts a match
+// type MatchRequest struct {
+// 	Sketch      string `json:"sketch"`
+// 	FirstPlayer int64  `json:"user_id"`
+// 	Mode        string `json:"mode"`
+// }
+
 // Verbose defines the logging level. True goes into Debug, Info otherwise.
 // Set previous to starting the server
 const Verbose = true
