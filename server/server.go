@@ -30,6 +30,14 @@ func Start() {
 	e := echo.New()
 	logger = e.Logger
 
+	// custom context
+	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			cc := &MatchContext{c}
+			return h(cc)
+		}
+	})
+
 	e.Use(middleware.Recover())
 	e.Logger.SetLevel(func() log.Lvl {
 		if Verbose {
@@ -42,11 +50,6 @@ func Start() {
 	}
 
 	setupRoutes(e)
-
-	e.Logger.Debug("active routes:")
-	for _, r := range e.Routes() {
-		e.Logger.Debugf("%+v", *r)
-	}
 
 	e.Logger.Fatal(e.Start(":8000"))
 }

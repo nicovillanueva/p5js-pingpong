@@ -30,7 +30,7 @@ func (ds *DataStore) FindMatch(id int64) (*PingPongMatch, error) {
 
 // SaveMatch returns the ID of the saved match
 // Returns error in case of db save error
-func (ds *DataStore) SaveMatch(match PingPongMatch) (int64, error) {
+func (ds *DataStore) SaveMatch(match *PingPongMatch) error {
 	i := rand.Int63()
 	for {
 		if _, exists := ds.Matches[i]; exists {
@@ -40,9 +40,10 @@ func (ds *DataStore) SaveMatch(match PingPongMatch) (int64, error) {
 		}
 		break
 	}
-	logger.Printf("saving %s match of %+v with id %d", match.kind, match.players, i)
-	ds.Matches[i] = &match
-	return i, nil
+	// logger.Printf("saving %s match of %+v with id %d", match.kind, match.players, i)
+	match.matchID = i
+	ds.Matches[i] = match
+	return nil
 }
 
 // StoreUser saves a user

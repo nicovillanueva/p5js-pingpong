@@ -43,11 +43,12 @@ func setupRoutes(e *echo.Echo) {
 		Number:  1,
 		Enabled: true,
 		Handlings: []routeDefinition{
-			{"PUT", "/users", handleNewUser},
-			{"GET", "/matches/:matchId", handleRenderMatch},
-			{"PUT", "/matches/serve", handleNewMatch},
-			{"PUT", "/matches/join/:matchId", handleJoinMatch},
-			{"PATCH", "/matches/return/:matchId", handleReturn},
+			{"POST", "/match", handleNewMatch},
+			{"GET", "/match/:matchId", handleMatchStatus},
+			{"PUT", "/match/:matchId/players", handleJoinMatch},
+			{"PATCH", "/match/:matchId/players", handleApproveRequests},
+			{"PUT", "/match/:matchId/sketches", handleNewSketch},
+			{"GET", "/match/:matchId/sketches", handleGetSketches},
 		},
 	}
 	a.apply(e)

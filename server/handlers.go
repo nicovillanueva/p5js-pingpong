@@ -2,158 +2,146 @@ package server
 
 import (
 	"github.com/labstack/echo/v4"
-	"strconv"
 )
 
-// ReturnRequest sends a return
-type ReturnRequest struct {
-	Sketch string `json:"sketch"`
-	UserID int64  `json:"user_id"`
-}
-
-// MatchRequest starts a match
-type MatchRequest struct {
-	Sketch      string `json:"sketch"`
-	FirstPlayer int64  `json:"user_id"`
-	Mode        string `json:"mode"`
-}
-
-// UserResponse responds with the user referenced and the status of the request
-type UserResponse struct {
-	User   string `json:"user"`
-	Status string `json:"status"`
-}
-
-// MatchResponse is the response with information about the searched match
-type MatchResponse struct {
-	Status   string `json:"status"`
-	MatchID  int64  `json:"match_id"`
-	Sketches []Play `json:"sketch,omitempty"`
-}
-
-func handleRenderMatch(c echo.Context) error {
-	mid := c.Param("matchId")
-	i, err := strconv.ParseInt(mid, 10, 64)
+func handleNewMatch(ctx echo.Context) error {
+	c := ctx.(*MatchContext)
+	match, err := c.CreateMatch()
 	if err != nil {
+		return err
+	}
+	if err = store.SaveMatch(match); err != nil {
+		// TODO: test errored save
 		return c.JSON(403, MatchResponse{
 			Status: err.Error(),
 		})
 	}
-	m, err := store.FindMatch(i)
+	s, err := match.Summary()
 	if err != nil {
-		return c.JSON(403, MatchResponse{
-			MatchID: i,
-			Status:  err.Error(),
-		})
-	}
-	_, getAll := c.QueryParams()["all"]
-	var p []Play
-	if getAll {
-		p = m.AllPlays()
-	} else {
-		p = []Play{m.LastPlay()}
-	}
-	return c.JSON(200, MatchResponse{
-		MatchID:  i,
-		Status:   "ok",
-		Sketches: p,
-	})
-}
-
-func handleNewMatch(c echo.Context) error {
-	var matchReq MatchRequest
-	if err := c.Bind(&matchReq); err != nil {
-		return c.JSON(501, MatchResponse{
-			Status: err.Error(),
-		})
-	}
-	match := PingPongMatch{
-		kind: matchReq.Mode,
-		plays: []Play{{
-			Sketch: matchReq.Sketch,
-			Author: matchReq.FirstPlayer,
-		}},
-		players: []int64{matchReq.FirstPlayer},
-	}
-	matchID, err := store.SaveMatch(match)
-	if err != nil {
-		return c.JSON(403, MatchResponse{
+		return c.JSON(425, MatchResponse{
 			Status: err.Error(),
 		})
 	}
 	return c.JSON(200, MatchResponse{
-		MatchID: matchID,
-		Status:  "created",
+		Status:      "created",
+		MatchStatus: s,
 	})
+
 }
 
-func handleReturn(c echo.Context) error {
+func handleMatchStatus(ctx echo.Context) error {
+	var err error
+	var m *PingPongMatch
+	var status MatchStatus
+	c := ctx.(*MatchContext)
+	var authReq AuthenticatedRequest
+	if err = c.Bind(&authReq); err != nil {
+		return c.JSON(403, MatchResponse{
+			Status: err.Error(),
+		})
+	}
+	m, err = c.RetrieveMatch()
+	if err != nil {
+		return c.JSON(403, MatchResponse{
+			Status: err.Error(),
+		})
+	}
+	if status, err = m.Summary(); err != nil {
+		return c.JSON(425, MatchResponse{
+			Status: err.Error(),
+		})
+	}
+	if authReq.UserID == m.ownerID && authReq.Token == 1 {
+		logger.Debugf("match owner %d requesting match status", authReq.UserID)
+		return c.JSON(200, MatchStatusOwner{
+			MatchStatus:     status,
+			PendingRequests: m.players.JoinRequests,
+		})
+	}
+	logger.Debugf("non-owner %d requesting match status", authReq.UserID)
+	return c.JSON(200, status)
+}
+
+func handleNewSketch(ctx echo.Context) error {
+	c := ctx.(*MatchContext)
 	var returnRequest ReturnRequest
-	mid := c.Param("matchId")
-	matchID, err := strconv.ParseInt(mid, 10, 64)
-	if err != nil {
-		return c.JSON(400, MatchResponse{
-			Status: err.Error(),
-		})
-	}
 	if err := c.Bind(&returnRequest); err != nil {
-		return c.JSON(400, MatchResponse{
-			MatchID: matchID,
-			Status:  err.Error(),
-		})
+		return c.JSON(500, err)
 	}
-	m, err := store.FindMatch(matchID)
+	var m *PingPongMatch
+	m, err := c.RetrieveMatch()
 	if err != nil {
-		return c.JSON(404, MatchResponse{
-			MatchID: matchID,
-			Status:  err.Error(),
-		})
+		return err
 	}
+	logger.Warnf("return req: %+v", returnRequest)
+	s, _ := m.Summary()
 	if !m.IsAllowed(returnRequest.UserID) {
 		return c.JSON(406, MatchResponse{
-			MatchID: matchID,
-			Status:  "user is not a player here (private match)",
+			MatchStatus: s,
+			Status:      "user is not yet a player here",
 		})
 	}
 	if m.lastBy == returnRequest.UserID {
 		return c.JSON(409, MatchResponse{
-			MatchID: matchID,
-			Status:  "cannot send two sketches in a row",
+			MatchStatus: s,
+			Status:      "cannot send two sketches in a row",
 		})
 	}
 	m.AddPlay(returnRequest.Sketch, returnRequest.UserID)
-	m.lastBy = returnRequest.UserID
-	logger.Infof("added play to match %d by user %d, currently %d sketches long", matchID, returnRequest.UserID, len(m.plays))
 	return c.JSON(200, MatchResponse{
-		MatchID: matchID,
-		Status:  "sent",
+		MatchStatus: s,
+		Status:      "received",
 	})
 }
 
-func handleNewUser(c echo.Context) error {
-	var payload struct {
-		User string `json:"u"`
-		Pass string `json:"p"`
-	}
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(400, UserResponse{
-			User:   payload.User,
+func handleJoinMatch(ctx echo.Context) error {
+	c := ctx.(*MatchContext)
+	m, err := c.RetrieveMatch()
+	if err != nil {
+		return c.JSON(403, MatchResponse{
 			Status: err.Error(),
 		})
 	}
-	if err := store.StoreUser(payload.User, payload.Pass); err != nil {
-		return c.JSON(403, UserResponse{
-			User:   payload.User,
+	var authReq AuthenticatedRequest
+	if err := c.Bind(&authReq); err != nil {
+		return c.JSON(403, MatchResponse{
 			Status: err.Error(),
 		})
 	}
-	return c.JSON(200, UserResponse{
-		User:   payload.User,
-		Status: "created",
-	})
+	added, reason := m.AddJoinRequest(authReq.UserID)
+	if !added {
+		return c.JSON(409, JoinStatus{added, reason})
+	}
+	return c.JSON(200, JoinStatus{added, reason})
 }
 
-func handleJoinMatch(c echo.Context) error {
-	logger.Warn("pending method")
-	return nil
+func handleApproveRequests(ctx echo.Context) error {
+	c := ctx.(*MatchContext)
+	var joinRequest *ApproveJoinRequest
+	var match *PingPongMatch
+	err := c.Bind(&joinRequest)
+	if err != nil {
+		return err
+	}
+	match, err = c.RetrieveMatch()
+	if err != nil {
+		return err
+	}
+	s, _ := match.Summary()
+	match.ApproveRequest(joinRequest.RequestID)
+	return c.JSON(200, s)
+}
+
+// get N sketches
+func handleGetSketches(ctx echo.Context) error {
+	c := ctx.(*MatchContext)
+	match, err := c.RetrieveMatch()
+	if err != nil {
+		return err
+	}
+	s, _ := match.Summary()
+	return c.JSON(200, MatchWithSketches{
+		MatchStatus: s,
+		Sketches:    []Sketch{match.LastPlay()},
+	})
 }
