@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 )
 
@@ -23,9 +22,9 @@ func (a *APIVersion) apply(e *echo.Echo) {
 	if !a.Enabled {
 		return
 	}
-	g := e.Group(fmt.Sprintf("/v%d", a.Number))
+	// g := e.Group(fmt.Sprintf("/v%d", a.Number))
 	for _, r := range a.Handlings {
-		g.Add(r.Method, r.Path, r.Handler)
+		e.Add(r.Method, r.Path, r.Handler)
 	}
 }
 

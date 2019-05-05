@@ -5,14 +5,10 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/labstack/gommon/log"
-)
 
-// MatchRequest starts a match
-// type MatchRequest struct {
-// 	Sketch      string `json:"sketch"`
-// 	FirstPlayer int64  `json:"user_id"`
-// 	Mode        string `json:"mode"`
-// }
+	_ "github.com/nicovillanueva/p5js-pingpong/server/docs" // generated swagger docs
+	echoSwagger "github.com/swaggo/echo-swagger"
+)
 
 // Verbose defines the logging level. True goes into Debug, Info otherwise.
 // Set previous to starting the server
@@ -26,6 +22,11 @@ func init() {
 }
 
 // Start serves the server
+// @title PingPong API
+// @version 0.1
+// @description The p5jspingpong API
+// @host localhost:8000
+// @BasePath /
 func Start() {
 	e := echo.New()
 	logger = e.Logger
@@ -50,6 +51,7 @@ func Start() {
 	}
 
 	setupRoutes(e)
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	e.Logger.Fatal(e.Start(":8000"))
 }

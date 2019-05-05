@@ -43,6 +43,11 @@ type MatchWithSketches struct {
 	Sketches []Sketch `json:"sketches"`
 }
 
+// SketchList is just a list of sketches
+type SketchList struct {
+	Sketches []Sketch `json:"sketches"`
+}
+
 // AuthenticatedRequest is a request tied to a given user
 type AuthenticatedRequest struct {
 	UserID int64 `query:"user" json:"user_id"`

@@ -1,0 +1,113 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "The p5jspingpong API",
+        "title": "PingPong API",
+        "contact": {},
+        "license": {},
+        "version": "0.1"
+    },
+    "host": "localhost:8000",
+    "basePath": "/",
+    "paths": {
+        "/match": {
+            "post": {
+                "description": "Receives the match settings and starts it. Includes the serve (first sketch)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Start a new pingpong match",
+                "parameters": [
+                    {
+                        "description": "Starting settings for the match",
+                        "name": "match_settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/server.NewMatchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/server.MatchResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/server.MatchResponse"
+                        }
+                    },
+                    "425": {
+                        "description": "Too Early",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/server.MatchResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/server.MatchResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "server.MatchResponse": {
+            "type": "object",
+            "properties": {
+                "match_id": {
+                    "type": "integer"
+                },
+                "players": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "sketches_length": {
+                    "type": "integer"
+                },
+                "started_on": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.NewMatchRequest": {
+            "type": "object",
+            "properties": {
+                "max_players": {
+                    "type": "integer"
+                },
+                "requires_approval": {
+                    "type": "boolean"
+                },
+                "sketch": {
+                    "type": "string"
+                },
+                "theme": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

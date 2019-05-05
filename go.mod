@@ -3,6 +3,7 @@ module github.com/nicovillanueva/p5js-pingpong
 go 1.12
 
 require (
+	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/labstack/echo/v4 v4.0.0
@@ -12,6 +13,8 @@ require (
 	github.com/nicovillanueva/p5js-pingpong/api v0.0.0-20190404130543-55234abf6c11
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.2
+	github.com/swaggo/echo-swagger v0.0.0-20190329130007-1219b460a043
+	github.com/swaggo/swag v1.4.0
 	gopkg.in/go-playground/validator.v9 v9.28.0
 )
 

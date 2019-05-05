@@ -1,0 +1,77 @@
+basePath: /
+definitions:
+  server.MatchResponse:
+    properties:
+      match_id:
+        type: integer
+      players:
+        items:
+          type: integer
+        type: array
+      sketches_length:
+        type: integer
+      started_on:
+        type: string
+      status:
+        type: string
+    type: object
+  server.NewMatchRequest:
+    properties:
+      max_players:
+        type: integer
+      requires_approval:
+        type: boolean
+      sketch:
+        type: string
+      theme:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8000
+info:
+  contact: {}
+  description: The p5jspingpong API
+  license: {}
+  title: PingPong API
+  version: "0.1"
+paths:
+  /match:
+    post:
+      consumes:
+      - application/json
+      description: Receives the match settings and starts it. Includes the serve (first
+        sketch)
+      parameters:
+      - description: Starting settings for the match
+        in: body
+        name: match_settings
+        required: true
+        schema:
+          $ref: '#/definitions/server.NewMatchRequest'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.MatchResponse'
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/server.MatchResponse'
+            type: object
+        "425":
+          description: Too Early
+          schema:
+            $ref: '#/definitions/server.MatchResponse'
+            type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/server.MatchResponse'
+            type: object
+      summary: Start a new pingpong match
+swagger: "2.0"

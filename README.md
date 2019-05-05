@@ -15,3 +15,9 @@
         basado en previos publicos
     export gif
     thumbnails
+
+CI:
+    https://buddy.works/pricing
+    Travis?
+Hosting:
+    GCE
